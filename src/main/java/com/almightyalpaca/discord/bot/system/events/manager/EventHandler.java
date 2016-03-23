@@ -1,4 +1,4 @@
-package com.almightyalpaca.discord.botsystem.events.manager;
+package com.almightyalpaca.discord.bot.system.events.manager;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -13,10 +13,12 @@ public @interface EventHandler {
 
 	/**
 	 * Not used yet, might be in the future.
+     * Weather the handler supports async or not. Default is <b>false</b>.
 	 */
 	boolean async() default false;
 
 	/**
+	 * Not used yet, might be in the future.
 	 * The priority of this method. Default is <b>0</b>.
 	 */
 	int priority() default 0;

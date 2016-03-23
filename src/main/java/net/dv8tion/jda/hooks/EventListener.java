@@ -15,7 +15,7 @@
  */
 package net.dv8tion.jda.hooks;
 
-import com.almightyalpaca.discord.botsystem.events.manager.EventHandler;
+import com.almightyalpaca.discord.bot.system.events.manager.EventHandler;
 
 import net.dv8tion.jda.events.Event;
 
