@@ -15,10 +15,11 @@
  */
 package net.dv8tion.jda.hooks;
 
+import com.almightyalpaca.discord.botsystem.events.manager.EventHandler;
+
 import net.dv8tion.jda.events.Event;
 
 public interface EventListener
 {
-
-    void onEvent(Event event);
+	@EventHandler    void onEvent(Event event);
 }
