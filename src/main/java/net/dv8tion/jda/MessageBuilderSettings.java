@@ -2,11 +2,11 @@ package net.dv8tion.jda;
 
 public class MessageBuilderSettings
 {
-    static String nodehubPassword = "Almighty Bot";
+    static String notehubPassword = "";
 
-    public static void setNodehubPassword(final String password)
+    public static void setNotehubPassword(final String password)
     {
-        MessageBuilderSettings.nodehubPassword = password;
+        MessageBuilderSettings.notehubPassword = password;
     }
 
 }

@@ -34,7 +34,7 @@ public class URLUtils {
 				return url;
 			}
 			final Header[] headers = httpResponse.getHeaders(HttpHeaders.LOCATION);
-			if (headers.length != 1){
+			if (headers.length != 1) {
 				throw new IllegalStateException();
 			}
 			final String newUrl = headers[0].getValue();

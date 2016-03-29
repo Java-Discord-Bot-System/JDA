@@ -39,7 +39,7 @@ public class NoteHubUploader {
 		final String subURL = response.substring(response.indexOf("\"") + 1, response.indexOf("\"", response.indexOf("\"") + 1));
 
 		if (!subURL.startsWith("/")) {
-			throw new RuntimeException("Error while parsing nodehub result: " + response);
+			throw new RuntimeException("Error while parsing notehub result: " + response);
 		}
 
 		return new URL("https://notehub.org" + subURL);

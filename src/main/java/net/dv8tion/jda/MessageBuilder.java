@@ -104,7 +104,7 @@ public class MessageBuilder
                 {
                     try
                     {
-                        final URL url = NoteHubUploader.upload(MessageBuilder.this.getMessage(), MessageBuilderSettings.nodehubPassword);
+                        final URL url = NoteHubUploader.upload(MessageBuilder.this.getMessage(), MessageBuilderSettings.notehubPassword);
                         channel.sendMessage(message.replace("$url$", url.toString()));
                     }
                     catch (IOException | UnirestException e)
