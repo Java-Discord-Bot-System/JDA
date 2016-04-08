@@ -19,9 +19,9 @@ import net.dv8tion.jda.events.Event;
 
 public interface IEventManager
 {
-    void register(Object listener);
+    boolean register(Object listener);
 
-    void unregister(Object listener);
+    boolean unregister(Object listener);
 
     void handle(Event event);
 }

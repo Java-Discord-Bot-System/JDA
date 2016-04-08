@@ -31,21 +31,25 @@ public class AnnotatedEventManager implements IEventManager
     private final Map<Class<? extends Event>, Map<Object, Method>> methods = new HashMap<>();
 
     @Override
-    public void register(Object listener)
+    public boolean register(Object listener)
     {
         if (listeners.add(listener))
         {
             updateMethods();
+            return true;
         }
+        return false;
     }
 
     @Override
-    public void unregister(Object listener)
+    public boolean unregister(Object listener)
     {
         if (listeners.remove(listener))
         {
             updateMethods();
+            return true;
         }
+        return false;
     }
 
     @Override

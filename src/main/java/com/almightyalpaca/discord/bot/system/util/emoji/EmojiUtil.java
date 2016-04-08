@@ -20,7 +20,7 @@ public class EmojiUtil {
 		final Map<String, String> tempToDiscord = new HashMap<>();
 
 		try {
-			final JsonArray array = new JsonParser().parse(new InputStreamReader(EmojiUtil.class.getResourceAsStream("emojis.json"), "UTF-8")).getAsJsonArray();
+			final JsonArray array = new JsonParser().parse(new InputStreamReader(EmojiUtil.class.getResourceAsStream("/emojis.json"), "UTF-8")).getAsJsonArray();
 
 			for (int i = 0; i < array.size(); i++) {
 				final JsonObject object = array.get(i).getAsJsonObject();
@@ -46,7 +46,7 @@ public class EmojiUtil {
 		final Map<String, String> tempShortcuts = new HashMap<>();
 
 		try {
-			final JsonArray array = new JsonParser().parse(new InputStreamReader(EmojiUtil.class.getResourceAsStream("shortcuts.json"), "UTF-8")).getAsJsonArray();
+			final JsonArray array = new JsonParser().parse(new InputStreamReader(EmojiUtil.class.getResourceAsStream("/shortcuts.json"), "UTF-8")).getAsJsonArray();
 
 			for (int i = 0; i < array.size(); i++) {
 				final JsonObject object = array.get(i).getAsJsonObject();

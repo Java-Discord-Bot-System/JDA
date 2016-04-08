@@ -31,19 +31,19 @@ public class InterfacedEventManager implements IEventManager
     }
 
     @Override
-    public void register(Object listener)
+    public boolean register(Object listener)
     {
         if (!(listener instanceof EventListener))
         {
             throw new IllegalArgumentException("Listener must implement EventListener");
         }
-        listeners.add(((EventListener) listener));
+        return listeners.add(((EventListener) listener));
     }
 
     @Override
-    public void unregister(Object listener)
+    public boolean unregister(Object listener)
     {
-        listeners.remove(listener);
+    	return listeners.remove(listener);
     }
 
     @Override
