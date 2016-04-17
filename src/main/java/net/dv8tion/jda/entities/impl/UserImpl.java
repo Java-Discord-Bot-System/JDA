@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,9 +103,12 @@ public class UserImpl implements User
         {
             try
             {
-                JSONObject response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "users/" + api.getSelfInfo().getId() + "/channels",
+                Requester.Response response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "users/@me/channels",
                         new JSONObject().put("recipient_id", getId()));
-                new EntityBuilder(api).createPrivateChannel(response);
+                if(response.isOk())
+                    new EntityBuilder(api).createPrivateChannel(response.getObject());
+                else
+                    throw new RuntimeException("Could not get Private-channel for user: " + getUsername() + "... Error: " + response.toString());
             }
             catch (JSONException ex)
             {

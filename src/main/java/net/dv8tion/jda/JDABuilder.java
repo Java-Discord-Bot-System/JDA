@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,10 +45,7 @@ public class JDABuilder
     protected static String proxyUrl = null;
     protected static int proxyPort = -1;
     final List<Object> listeners;
-    String email = null;
-    String pass = null;
-    String botToken = null;
-    boolean debug = false;
+    String token = null;
     boolean enableVoice = true;
     boolean useAnnotatedManager = false;
     IEventManager eventManager = null;
@@ -56,59 +53,14 @@ public class JDABuilder
 
     /**
      * Creates a completely empty JDABuilder.<br>
-     * If you use this, you need to set the email and password using
-     * {@link net.dv8tion.jda.JDABuilder#setEmail(String) setEmail(String)}
-     * and {@link net.dv8tion.jda.JDABuilder#setPassword(String) setPassword(String)}
+     * If you use this, you need to set the bot token using
+     * {@link net.dv8tion.jda.JDABuilder#setBotToken(String) setBotToken(String)}
      * before calling {@link net.dv8tion.jda.JDABuilder#buildAsync() buildAsync()}
      * or {@link net.dv8tion.jda.JDABuilder#buildBlocking() buildBlocking()}
      */
     public JDABuilder()
     {
-        this(null, null);
-    }
-
-    /**
-     * Creates a new JDABuilder using the provided email and password.
-     *
-     * @param email
-     *          The email of the account that will be used to log into Discord.
-     * @param password
-     *          The password of the account that will be used to log into Discord.
-     */
-    public JDABuilder(String email, String password)
-    {
-        this.email = email;
-        this.pass = password;
         listeners = new LinkedList<>();
-    }
-
-    /**
-     * Creates a new JDABuilder using the provided token that is received when creating a Bot-Account.
-     *
-     * @param botToken
-     *          The token of a Bot-Account.
-     */
-    public JDABuilder(String botToken)
-    {
-        this.botToken = botToken;
-        listeners = new LinkedList<>();
-    }
-
-    /**
-     * Sets the email that will be used by the {@link net.dv8tion.jda.JDA} instance to log in when
-     * {@link net.dv8tion.jda.JDABuilder#buildAsync() buildAsync()}
-     * or {@link net.dv8tion.jda.JDABuilder#buildBlocking() buildBlocking()}
-     * is called.
-     *
-     * @param email
-     *          The email of the account that you would like to login with.
-     * @return
-     *      Returns the {@link net.dv8tion.jda.JDABuilder JDABuilder} instance. Useful for chaining.
-     */
-    public JDABuilder setEmail(String email)
-    {
-        this.email = email;
-        return this;
     }
 
     /**
@@ -123,23 +75,7 @@ public class JDABuilder
      *      Returns the {@link net.dv8tion.jda.JDABuilder JDABuilder} instance. Useful for chaining.
      */
     public JDABuilder setBotToken(String botToken) {
-        this.botToken = botToken;
-        return this;
-    }
-
-    /**
-     * Sets the password that will be used by the {@link net.dv8tion.jda.JDA} instance to log in when
-     * {@link net.dv8tion.jda.JDABuilder#buildAsync() buildAsync()}
-     * or {@link net.dv8tion.jda.JDABuilder#buildBlocking() buildBlocking()}
-     * is called.
-     *
-     * @param password
-     *          The password of the account that you would like to login with.
-     * @return
-     *      Returns the {@link net.dv8tion.jda.JDABuilder JDABuilder} instance. Useful for chaining.
-     */
-    public JDABuilder setPassword(String password) {
-        this.pass = password;
+        this.token = "Bot " + botToken;
         return this;
     }
 
@@ -165,24 +101,6 @@ public class JDABuilder
         proxySet = true;
         JDABuilder.proxyUrl = proxyUrl;
         JDABuilder.proxyPort = proxyPort;
-        return this;
-    }
-
-    /**
-     * <b>This method is deprecated! please switch to using the {@link net.dv8tion.jda.utils.SimpleLog SimpleLog} class.</b>
-     * <p>
-     * Enables developer debug of JDA.<br>
-     * Enabling this will print stack traces instead of java logger message when exceptions are encountered.
-     *
-     * @param debug
-     *          True - enables debug printing.
-     * @return
-     *          Returns the {@link net.dv8tion.jda.JDABuilder JDABuilder} instance. Useful for chaining.
-     */
-    @Deprecated
-    public JDABuilder setDebug(boolean debug)
-    {
-       this.debug = debug;
         return this;
     }
 
@@ -317,7 +235,6 @@ public class JDABuilder
             jda = new JDAImpl(proxyUrl, proxyPort, enableVoice);
         else
             jda = new JDAImpl(enableVoice);
-        jda.setDebug(debug);
         jda.setAutoReconnect(reconnect);
         if (eventManager != null)
         {
@@ -328,14 +245,7 @@ public class JDABuilder
             jda.setEventManager(new AnnotatedEventManager());
         }
         listeners.forEach(jda::addEventListener);
-        if (botToken != null)
-        {
-            jda.login(botToken);
-        }
-        else
-        {
-            jda.login(email, pass);
-        }
+        jda.login(token);
         return jda;
     }
 

@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,7 @@ package net.dv8tion.jda.entities.impl;
 
 import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.Permission;
-import net.dv8tion.jda.entities.Message;
-import net.dv8tion.jda.entities.MessageEmbed;
-import net.dv8tion.jda.entities.TextChannel;
-import net.dv8tion.jda.entities.User;
+import net.dv8tion.jda.entities.*;
 import net.dv8tion.jda.exceptions.PermissionException;
 import net.dv8tion.jda.handle.EntityBuilder;
 import net.dv8tion.jda.requests.Requester;
@@ -29,6 +26,7 @@ import org.json.JSONObject;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -143,6 +141,12 @@ public class MessageImpl implements Message
     }
 
     @Override
+    public MessageChannel getChannel()
+    {
+        return isPrivate() ? api.getPrivateChannelById(channelId) : api.getTextChannelById(channelId);
+    }
+
+    @Override
     public List<Attachment> getAttachments()
     {
         return Collections.unmodifiableList(attachments);
@@ -173,8 +177,8 @@ public class MessageImpl implements Message
             throw new UnsupportedOperationException("Attempted to update message that was not sent by this account. You cannot modify other User's messages!");
         try
         {
-            JSONObject response = api.getRequester().patch(Requester.DISCORD_API_PREFIX + "channels/" + channelId + "/messages/" + getId(), new JSONObject().put("content", newContent));
-            if(!response.has("id"))         //updating failed (dunno why)
+            JSONObject response = api.getRequester().patch(Requester.DISCORD_API_PREFIX + "channels/" + channelId + "/messages/" + getId(), new JSONObject().put("content", newContent)).getObject();
+            if(response == null || !response.has("id"))         //updating failed (dunno why)
                 return null;
             return new EntityBuilder(api).createMessage(response);
         }
@@ -183,6 +187,15 @@ public class MessageImpl implements Message
             JDAImpl.LOG.log(ex);
             return null;
         }
+    }
+
+    @Override
+    public void updateMessageAsync(String newContent, Consumer<Message> callback)
+    {
+        if (api.getSelfInfo() != getAuthor())
+            throw new UnsupportedOperationException("Attempted to update message that was not sent by this account. You cannot modify other User's messages!");
+        Message newMessage = new MessageImpl(getId(), api).setContent(newContent).setChannelId(getChannelId());
+        TextChannelImpl.AsyncMessageSender.getInstance(api).enqueue(newMessage, true, callback);
     }
 
     @Override

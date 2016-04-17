@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,19 +79,19 @@ public class PrivateChannelImpl implements PrivateChannel
         }
         try
         {
-            JSONObject response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + getId() + "/messages",
+            Requester.Response response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + getId() + "/messages",
                     new JSONObject().put("content", msg.getRawContent()));
-            if (response.has("retry_after"))
+            if (response.isRateLimit())
             {
-                long retry_after = response.getLong("retry_after");
+                long retry_after = response.getObject().getLong("retry_after");
                 api.setMessageTimeout(retry_after);
                 throw new RateLimitedException(retry_after);
             }
-            if (!response.has("id"))
+            if (!response.isOk())
             {
                 throw new BlockedException();
             }
-            return new EntityBuilder(api).createMessage(response);
+            return new EntityBuilder(api).createMessage(response.getObject());
         }
         catch (JSONException ex)
         {
@@ -111,21 +111,7 @@ public class PrivateChannelImpl implements PrivateChannel
     public void sendMessageAsync(Message msg, Consumer<Message> callback)
     {
         ((MessageImpl) msg).setChannelId(getId());
-        TextChannelImpl.AsyncMessageSender.getInstance(getJDA()).enqueue(msg, callback);
-    }
-
-    @Override
-    @Deprecated
-    public Message sendFile(File file)
-    {
-        return sendFile(file, null);
-    }
-
-    @Override
-    @Deprecated
-    public void sendFileAsync(File file, Consumer<Message> callback)
-    {
-        sendFileAsync(file, null, callback);
+        TextChannelImpl.AsyncMessageSender.getInstance(getJDA()).enqueue(msg, false, callback);
     }
 
     @Override
@@ -183,9 +169,16 @@ public class PrivateChannelImpl implements PrivateChannel
         thread.start();
     }
 
+    @Override
     public void sendTyping()
     {
         api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + getId() + "/typing", new JSONObject());
+    }
+
+    @Override
+    public void close()
+    {
+        api.getRequester().delete(Requester.DISCORD_API_PREFIX + "channels/" + getId());
     }
 
     @Override

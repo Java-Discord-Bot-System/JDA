@@ -1,11 +1,11 @@
-/**
- *      Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -167,7 +167,7 @@ public class RoleManager
         {
             arr.put(new JSONObject().put("position", i + 1).put("id", newOrder.get(i).getId()));
         }
-        ((JDAImpl) role.getJDA()).getRequester().patchA(Requester.DISCORD_API_PREFIX + "guilds/" + role.getGuild().getId() + "/roles", arr);
+        ((JDAImpl) role.getJDA()).getRequester().patch(Requester.DISCORD_API_PREFIX + "guilds/" + role.getGuild().getId() + "/roles", arr);
         return this;
     }
 
@@ -262,13 +262,13 @@ public class RoleManager
 
     private void update(JSONObject object)
     {
-        JSONObject response = ((JDAImpl) role.getJDA()).getRequester().patch(Requester.DISCORD_API_PREFIX + "guilds/" + role.getGuild().getId() + "/roles/" + role.getId(), object);
-        if (response == null || !response.has("id"))
+        Requester.Response response = ((JDAImpl) role.getJDA()).getRequester().patch(Requester.DISCORD_API_PREFIX + "guilds/" + role.getGuild().getId() + "/roles/" + role.getId(), object);
+        if (!response.isOk())
         {
             throw new RuntimeException("Setting values of Role " + role.getName() + " with ID " + role.getId()
-                    + " failed... Reason: " + (response == null ? "Unknown" : response.toString()));
+                    + " failed... Reason: "+response.toString());
         }
-        new EntityBuilder(((JDAImpl) role.getJDA())).createRole(response, role.getGuild().getId());
+        new EntityBuilder(((JDAImpl) role.getJDA())).createRole(response.getObject(), role.getGuild().getId());
     }
 
     private void checkPermission(Permission perm)

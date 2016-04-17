@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,12 @@ public class TextChannelImpl implements TextChannel
     public JDA getJDA()
     {
         return guild.getJDA();
+    }
+
+    @Override
+    public String getAsMention()
+    {
+        return "<#" + getId() + '>';
     }
 
     @Override
@@ -141,6 +147,7 @@ public class TextChannelImpl implements TextChannel
     @Override
     public Message sendMessage(Message msg)
     {
+        ((GuildImpl) guild).checkVerification();
         SelfInfo self = getJDA().getSelfInfo();
         if (!checkPermission(self, Permission.MESSAGE_WRITE))
             throw new PermissionException(Permission.MESSAGE_WRITE);
@@ -152,17 +159,17 @@ public class TextChannelImpl implements TextChannel
         }
         try
         {
-            JSONObject response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + getId() + "/messages",
+            Requester.Response response = api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + getId() + "/messages",
                     new JSONObject().put("content", msg.getRawContent()).put("tts", msg.isTTS()));
-            if (response.has("retry_after"))
+            if (response.isRateLimit())
             {
-                long retry_after = response.getLong("retry_after");
+                long retry_after = response.getObject().getLong("retry_after");
                 api.setMessageTimeout(retry_after);
                 throw new RateLimitedException(retry_after);
             }
-            if(!response.has("id")) //sending failed (Verification-level?)
+            if(!response.isOk()) //sending failed (Verification-level?)
                 return null;
-            return new EntityBuilder(api).createMessage(response);
+            return new EntityBuilder(api).createMessage(response.getObject());
         }
         catch (JSONException ex)
         {
@@ -181,31 +188,19 @@ public class TextChannelImpl implements TextChannel
     @Override
     public void sendMessageAsync(Message msg, Consumer<Message> callback)
     {
+        ((GuildImpl) guild).checkVerification();
         SelfInfo self = getJDA().getSelfInfo();
         if (!checkPermission(self, Permission.MESSAGE_WRITE))
             throw new PermissionException(Permission.MESSAGE_WRITE);
 
         ((MessageImpl) msg).setChannelId(getId());
-        AsyncMessageSender.getInstance(getJDA()).enqueue(msg, callback);
-    }
-
-    @Override
-    @Deprecated
-    public Message sendFile(File file)
-    {
-        return sendFile(file, null);
-    }
-
-    @Override
-    @Deprecated
-    public void sendFileAsync(File file, Consumer<Message> callback)
-    {
-        sendFileAsync(file, null, callback);
+        AsyncMessageSender.getInstance(getJDA()).enqueue(msg, false, callback);
     }
 
     @Override
     public Message sendFile(File file, Message message)
     {
+        ((GuildImpl) guild).checkVerification();
         if (!checkPermission(getJDA().getSelfInfo(), Permission.MESSAGE_WRITE))
             throw new PermissionException(Permission.MESSAGE_WRITE);
         if (!checkPermission(getJDA().getSelfInfo(), Permission.MESSAGE_ATTACH_FILES))
@@ -252,6 +247,7 @@ public class TextChannelImpl implements TextChannel
     @Override
     public void sendFileAsync(File file, Message message, Consumer<Message> callback)
     {
+        ((GuildImpl) guild).checkVerification();
         if (!checkPermission(getJDA().getSelfInfo(), Permission.MESSAGE_WRITE))
             throw new PermissionException(Permission.MESSAGE_WRITE);
         if (!checkPermission(getJDA().getSelfInfo(), Permission.MESSAGE_ATTACH_FILES))
@@ -385,6 +381,7 @@ public class TextChannelImpl implements TextChannel
         private static final Map<JDA, AsyncMessageSender> instances = new HashMap<>();
         private final JDAImpl api;
         private Runner runner = null;
+        private boolean runnerRunning = false;
 
         private AsyncMessageSender(JDAImpl api)
         {
@@ -400,23 +397,61 @@ public class TextChannelImpl implements TextChannel
             return instances.get(api);
         }
 
-        private final Queue<AbstractMap.SimpleImmutableEntry<Message, Consumer<Message>>> queue = new LinkedList<>();
+        private final Queue<Task> queue = new LinkedList<>();
 
-        public synchronized void enqueue(Message msg, Consumer<Message> callback)
+        public synchronized void enqueue(Message msg, boolean isEdit, Consumer<Message> callback)
         {
-            queue.add(new AbstractMap.SimpleImmutableEntry<>(msg, callback));
-            if (runner == null || !runner.isAlive())
+            enqueue(new Task(msg, isEdit, callback));
+        }
+
+        public synchronized void enqueue(Task task)
+        {
+            queue.add(task);
+            if (runner == null)
             {
+                runnerRunning = true;
                 runner = new Runner(this);
+                runner.setDaemon(true);
                 runner.start();
+            }
+            else if (!runnerRunning)
+            {
+                runnerRunning = true;
+                notifyAll();
             }
         }
 
-        private synchronized Queue<AbstractMap.SimpleImmutableEntry<Message, Consumer<Message>>> getQueue()
+        private synchronized void waitNew()
         {
-            LinkedList<AbstractMap.SimpleImmutableEntry<Message, Consumer<Message>>> copy = new LinkedList<>(queue);
+            if (!queue.isEmpty())
+                return;
+            runnerRunning = false;
+            while(!runnerRunning) {
+                try {
+                    wait();
+                } catch(InterruptedException ignored) {}
+            }
+        }
+
+        private synchronized Queue<Task> getQueue()
+        {
+            Queue<Task> copy = new LinkedList<>(queue);
             queue.clear();
             return copy;
+        }
+
+        public static class Task
+        {
+            public final Message message;
+            public final boolean isEdit;
+            public final Consumer<Message> callback;
+
+            public Task(Message message, boolean isEdit, Consumer<Message> callback)
+            {
+                this.message = message;
+                this.isEdit = isEdit;
+                this.callback = callback;
+            }
         }
 
         private static class Runner extends Thread
@@ -431,55 +466,76 @@ public class TextChannelImpl implements TextChannel
             @Override
             public void run()
             {
-                Queue<AbstractMap.SimpleImmutableEntry<Message, Consumer<Message>>> queue = sender.getQueue();
-                while (!queue.isEmpty())
+                while (true)
                 {
-                    Long messageLimit = sender.api.getMessageLimit();
-                    if (messageLimit != null)
+                    Queue<Task> queue = sender.getQueue();
+                    while (!queue.isEmpty())
                     {
-                        try
-                        {
-                            Thread.sleep(messageLimit - System.currentTimeMillis());
-                        }
-                        catch (InterruptedException e)
-                        {
-                            JDAImpl.LOG.log(e);
-                        }
-                    }
-                    AbstractMap.SimpleImmutableEntry<Message, Consumer<Message>> peek = queue.peek();
-                    JSONObject response = sender.api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + peek.getKey().getChannelId() + "/messages",
-                            new JSONObject().put("content", peek.getKey().getRawContent()).put("tts", peek.getKey().isTTS()));
-                    if (response == null)
-                    {
-                        JDAImpl.LOG.debug("Error sending async-message (returned null-json)... Retrying after 1s");
-                        sender.api.setMessageTimeout(1000);
-                    }
-                    else if (!response.has("retry_after"))   //success
-                    {
-                        queue.poll();//remove from queue
-                        if (peek.getValue() != null)
+                        Long messageLimit = sender.api.getMessageLimit();
+                        if (messageLimit != null)
                         {
                             try
                             {
-                                //if response didn't have id, sending failed (due to permission/blocked pm,...
-                                peek.getValue().accept(
-                                        response.has("id") ? new EntityBuilder(sender.api).createMessage(response) : null);
+                                Thread.sleep(messageLimit - System.currentTimeMillis());
                             }
-                            catch (JSONException ex)
+                            catch (InterruptedException e)
                             {
-                                //could not generate message from json
-                                JDAImpl.LOG.log(ex);
+                                JDAImpl.LOG.log(e);
                             }
                         }
+                        Task task = queue.peek();
+                        Message msg = task.message;
+                        Requester.Response response;
+                        if(task.isEdit)
+                        {
+                            response = sender.api.getRequester().patch(Requester.DISCORD_API_PREFIX + "channels/" + msg.getChannelId() + "/messages/" + msg.getId(),
+                                    new JSONObject().put("content", msg.getRawContent()));
+                        }
+                        else
+                        {
+                            response = sender.api.getRequester().post(Requester.DISCORD_API_PREFIX + "channels/" + msg.getChannelId() + "/messages",
+                                    new JSONObject().put("content", msg.getRawContent()).put("tts", msg.isTTS()));
+                        }
+                        if (response.responseText == null)
+                        {
+                            JDAImpl.LOG.debug("Error sending async-message (returned null-text)... Retrying after 1s");
+                            sender.api.setMessageTimeout(1000);
+                        }
+                        else if (!response.isRateLimit())   //success/unrecoverable error
+                        {
+                            queue.poll();//remove from queue
+                            if (task.callback != null)
+                            {
+                                try
+                                {
+                                    if (response.isOk())
+                                    {
+                                        task.callback.accept(new EntityBuilder(sender.api).createMessage(response.getObject()));
+                                    }
+                                    else
+                                    {
+                                        //if response didn't have id, sending failed (due to permission/blocked pm,...
+                                        JDAImpl.LOG.fatal("Could not send/update async message. Discord-response: " + response.toString());
+                                        task.callback.accept(null);
+                                    }
+                                }
+                                catch (JSONException ex)
+                                {
+                                    //could not generate message from json
+                                    JDAImpl.LOG.log(ex);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            sender.api.setMessageTimeout(response.getObject().getLong("retry_after"));
+                        }
+                        if (queue.isEmpty())
+                        {
+                            queue = sender.getQueue();
+                        }
                     }
-                    else
-                    {
-                        sender.api.setMessageTimeout(response.getLong("retry_after"));
-                    }
-                    if (queue.isEmpty())
-                    {
-                        queue = sender.getQueue();
-                    }
+                    sender.waitNew();
                 }
             }
 

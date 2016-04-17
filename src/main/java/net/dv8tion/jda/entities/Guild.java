@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net.dv8tion.jda.entities;
 
 import net.dv8tion.jda.JDA;
 import net.dv8tion.jda.Region;
+import net.dv8tion.jda.managers.AudioManager;
 import net.dv8tion.jda.managers.ChannelManager;
 import net.dv8tion.jda.managers.GuildManager;
 import net.dv8tion.jda.managers.RoleManager;
@@ -114,6 +115,7 @@ public interface Guild
 
     /**
      * The {@link net.dv8tion.jda.entities.TextChannel TextChannels} available on the {@link net.dv8tion.jda.entities.Guild Guild}.
+     * The channels returned will be sorted according to their position.
      *
      * @return
      *      An Immutable List of {@link net.dv8tion.jda.entities.TextChannel TextChannels}.
@@ -135,6 +137,7 @@ public interface Guild
 
     /**
      * The {@link net.dv8tion.jda.entities.VoiceChannel VoiceChannels} available on the {@link net.dv8tion.jda.entities.Guild Guild}.
+     * The channels returned will be sorted according to their position.
      *
      * @return
      *      An Immutable List of {@link net.dv8tion.jda.entities.VoiceChannel VoiceChannels}.
@@ -155,7 +158,8 @@ public interface Guild
     ChannelManager createVoiceChannel(String name);
 
     /**
-     * The {@link net.dv8tion.jda.entities.Role Roles} of this {@link net.dv8tion.jda.entities.Guild Guild}
+     * The {@link net.dv8tion.jda.entities.Role Roles} of this {@link net.dv8tion.jda.entities.Guild Guild}.
+     * The roles returned will be sorted according to their position.
      *
      * @return
      *      An Immutable List of {@link net.dv8tion.jda.entities.Role Roles}.
@@ -176,6 +180,8 @@ public interface Guild
     /**
      * Provides all of the {@link net.dv8tion.jda.entities.Role Roles} that the provided {@link net.dv8tion.jda.entities.User User}
      *  has been assigned.
+     * The roles returned will be sorted according to their position.
+     *
      * @param user
      *          The {@link net.dv8tion.jda.entities.User User} that we wish to get the {@link net.dv8tion.jda.entities.Role Roles} related to.
      * @return
@@ -220,6 +226,15 @@ public interface Guild
      *      if the guild is temporarily unavailable
      */
     GuildManager getManager();
+
+    /**
+     * Returns the {@link net.dv8tion.jda.managers.AudioManager AudioManager} that represents the
+     * audio connection for this Guild.
+     *
+     * @return
+     *      The AudioManager for this Guild.
+     */
+    AudioManager getAudioManager();
 
     /**
      * Returns the {@link net.dv8tion.jda.JDA JDA} instance of this Guild
@@ -283,8 +298,8 @@ public interface Guild
      * The Verification-Level determines what requirement you have to meet to be able to speak in this Guild.<br>
      * None   -&gt; everyone can talk.<br>
      * Low    -&gt; verified email required.<br>
-     * Medium -&gt; you have to be member for at least 5min.<br>
-     * High   -&gt; you have to be member for at least 10min.
+     * Medium -&gt; you have to be member of discord for at least 5min.<br>
+     * High   -&gt; you have to be member of this guild for at least 10min.
      */
     enum VerificationLevel
     {

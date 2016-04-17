@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ public class GuildMembersChunkHandler extends SocketHandler
     }
 
     @Override
-    public void handle(JSONObject content)
+    protected String handleInternally(JSONObject content)
     {
         String lastGuildId = lastGuildIdCache.get(api);
         List<JSONArray> memberChunks = memberChunksCache.get(api);
@@ -68,5 +68,6 @@ public class GuildMembersChunkHandler extends SocketHandler
             lastGuildIdCache.remove(api);
             memberChunksCache.remove(api);
         }
+        return null;
     }
 }

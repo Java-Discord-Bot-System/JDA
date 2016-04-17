@@ -1,5 +1,5 @@
-/**
- *    Copyright 2015-2016 Austin Keener & Michael Ritter
+/*
+ *     Copyright 2015-2016 Austin Keener & Michael Ritter
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,9 @@ import net.dv8tion.jda.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.hooks.IEventManager;
 import net.dv8tion.jda.managers.AccountManager;
 import net.dv8tion.jda.managers.AudioManager;
-import net.dv8tion.jda.managers.GuildManager;
 import org.apache.http.HttpHost;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 
 /**
@@ -62,22 +60,6 @@ public interface JDA
      *          The listener to be removed.
      */
     void removeEventListener(Object listener);
-
-
-    /**
-     * Creates a new {@link net.dv8tion.jda.entities.Guild Guild}.<br>
-     * This function will wait until the Guild was fully created by the Discord-Server (default channels,...),
-     * and then call the provided callback-function with the GuildManager-object.
-     * <p>
-     * <b>NOTE: If you do not wish to interact with the created guild, the Consumer CAN BE NULL.</b>
-     * @param name
-     *      the name of the new {@link net.dv8tion.jda.entities.Guild Guild}
-     * @param region
-     *      the region of the new {@link net.dv8tion.jda.entities.Guild Guild}
-     * @param callback
-     *      the callback-function that gets called once the guild was fully initialized
-     */
-    void createGuildAsync(String name, Region region, Consumer<GuildManager> callback);
 
     /**
      * The login token that is currently being used for Discord authentication.
@@ -280,10 +262,12 @@ public interface JDA
      * instance. AudioManager deals with creating, managing and severing audio connections to
      * {@link net.dv8tion.jda.entities.VoiceChannel VoiceChannels}.
      *
+     * @param guild
+     *          The {@link net.dv8tion.jda.entities.Guild Guild} whose AudioManager you wish to retrieve.
      * @return
      *      The AudioManager for this JDA instance.
      */
-    AudioManager getAudioManager();
+    AudioManager getAudioManager(Guild guild);
 
     /**
      * This value is the total amount of JSON responses that discord has sent.<br>
@@ -322,26 +306,12 @@ public interface JDA
     boolean isAutoReconnect();
 
     /**
-     * <b>This method is deprecated! please switch to using the {@link net.dv8tion.jda.utils.SimpleLog SimpleLog} class.</b>
-     * <p>
-     * Used to enable JDA debug output.
-     *
-     * @param enableDebug
-     *          If true - enables debug output.
-     */
-    @Deprecated
-    void setDebug(boolean enableDebug);
-
-    /**
-     * <b>This method is deprecated! please switch to using the {@link net.dv8tion.jda.utils.SimpleLog SimpleLog} class.</b>
-     * <p>
-     * Used to determine if JDA is currently in debug mode.
+     * Used to determine whether the instance of JDA supports audio and has it enabled.
      *
      * @return
-     *      True if JDA is currently in debug mode.
+     *      True if JDA can currently utalize the audio system.
      */
-    @Deprecated
-    boolean isDebug();
+    boolean isAudioEnabled();
 
     /**
      * Shuts down JDA, closing all its connections.
