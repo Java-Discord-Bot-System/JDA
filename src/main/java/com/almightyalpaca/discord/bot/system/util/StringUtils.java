@@ -32,4 +32,12 @@ public class StringUtils {
 		return strings.toArray(new String[strings.size()]);
 	}
 
+	public static void replaceAll(StringBuilder builder, String from, String to) {
+		int index;
+		while ((index = builder.indexOf(from)) != -1) {
+			builder.replace(index, index + from.length(), to);
+		}
+
+	}
+
 }

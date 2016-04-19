@@ -323,7 +323,7 @@ public class MessageBuilder
     }
 
     /**
-     * Appends a new line char (\n) to the Message
+     * Appends a new line char (<b>\n</b>) to the Message
      *
      * @return this instance
      */
@@ -355,4 +355,18 @@ public class MessageBuilder
         this.isTTS = tts;
         return this;
     }
+
+	public void stripEveryoneMention() {
+		StringUtils.replaceAll(builder, "@everyone", "@\u180Eeveryone");
+		mentionEveryone = false;
+	}
+
+	public void stripHereMention() {
+		StringUtils.replaceAll(builder, "@here", "@\u180Ehere");
+	}
+
+	public void stripGlobalMentions() {
+		stripEveryoneMention();
+		stripHereMention();
+	}
 }

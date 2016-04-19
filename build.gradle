@@ -166,7 +166,7 @@ class Version {
     int major, minor, revision
 
     String getBuild() {
-        System.getenv("BUILD_NUMBER") ?: System.getProperty("BUILD_NUMBER") ?: "DEV"
+        System.getenv("BUILD_NUMBER")==null ? System.getProperty("BUILD_NUMBER")==null ? "DEV": System.getProperty("BUILD_NUMBER") : System.getenv("BUILD_NUMBER")
     }
 
     String toString() {
