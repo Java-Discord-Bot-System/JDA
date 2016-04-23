@@ -33,7 +33,6 @@ import net.dv8tion.jda.entities.impl.MessageImpl;
 
 public class MessageBuilder
 {
-
     /**
      * Holds the Available formatting used in {@link #appendString(String, Formatting...)}
      */

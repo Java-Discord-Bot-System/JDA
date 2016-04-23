@@ -5,6 +5,14 @@ import java.util.List;
 
 public class StringUtils {
 
+	public static void replaceAll(final StringBuilder builder, final String from, final String to) {
+		int index;
+		while ((index = builder.indexOf(from)) != -1) {
+			builder.replace(index, index + from.length(), to);
+		}
+
+	}
+
 	public static String replaceFirst(final String text, final String searchString, final String replacement) {
 		return org.apache.commons.lang3.StringUtils.replaceOnce(text, searchString, replacement);
 	}
@@ -17,27 +25,28 @@ public class StringUtils {
 	}
 
 	public static String[] split(String string, final int lenth, final String split) {
+		if (string.length() <= lenth) {
+			return new String[] { string };
+		}
 		final List<String> strings = new ArrayList<>();
+
 		while (string.length() > lenth) {
-			String temp = string.substring(0, lenth);
-			final int index = temp.lastIndexOf(split);
+			final String current = string.substring(0, lenth + split.length());
+
+			final int index = current.lastIndexOf(split);
+
 			if (index == -1) {
 				throw new UnsupportedOperationException("One or more substrings were too long!");
 			}
-			temp = temp.substring(0, index + split.length());
-			string = StringUtils.replaceFirst(string, temp, "");
-			strings.add(StringUtils.replaceLast(temp.substring(0, index + split.length()), split, ""));
+
+			final String substring = current.substring(0, index);
+
+			strings.add(substring);
+			string = StringUtils.replaceFirst(string, substring + split, "");
+
 		}
-		strings.add(string);
+
 		return strings.toArray(new String[strings.size()]);
-	}
-
-	public static void replaceAll(StringBuilder builder, String from, String to) {
-		int index;
-		while ((index = builder.indexOf(from)) != -1) {
-			builder.replace(index, index + from.length(), to);
-		}
-
 	}
 
 }
