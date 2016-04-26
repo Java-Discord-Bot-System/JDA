@@ -21,7 +21,6 @@ import net.dv8tion.jda.Region;
 import net.dv8tion.jda.entities.*;
 import net.dv8tion.jda.exceptions.GuildUnavailableException;
 import net.dv8tion.jda.exceptions.PermissionException;
-import net.dv8tion.jda.exceptions.VerificationLevelException;
 import net.dv8tion.jda.handle.EntityBuilder;
 import net.dv8tion.jda.managers.AudioManager;
 import net.dv8tion.jda.managers.ChannelManager;
@@ -214,6 +213,12 @@ public class GuildImpl implements Guild
     }
 
     @Override
+    public Role getRoleById(String id)
+    {
+        return roles.get(id);
+    }
+
+    @Override
     public RoleManager createRole()
     {
         if (!PermissionUtil.checkPermission(getJDA().getSelfInfo(), Permission.MANAGE_ROLES, this))
@@ -291,6 +296,29 @@ public class GuildImpl implements Guild
     public VerificationLevel getVerificationLevel()
     {
         return verificationLevel;
+    }
+
+    @Override
+    public boolean checkVerification()
+    {
+        if(canSendVerification)
+            return true;
+        switch (verificationLevel)
+        {
+            case HIGH:
+                if(ChronoUnit.MINUTES.between(getJoinDateForUser(api.getSelfInfo()), OffsetDateTime.now()) < 10)
+                    break;
+            case MEDIUM:
+                if(ChronoUnit.MINUTES.between(MiscUtil.getCreationTime(api.getSelfInfo()), OffsetDateTime.now()) < 5)
+                    break;
+            case LOW:
+                if(!api.getSelfInfo().isVerified())
+                    break;
+            case NONE:
+                canSendVerification = true;
+                return true;
+        }
+        return false;
     }
 
     @Override
@@ -382,28 +410,6 @@ public class GuildImpl implements Guild
         this.verificationLevel = level;
         this.canSendVerification = false;   //recalc on next send
         return this;
-    }
-
-    public void checkVerification()
-    {
-        if(canSendVerification)
-            return;
-        switch (verificationLevel)
-        {
-            case HIGH:
-                if(ChronoUnit.MINUTES.between(getJoinDateForUser(api.getSelfInfo()), OffsetDateTime.now()) < 10)
-                    break;
-            case MEDIUM:
-                if(ChronoUnit.MINUTES.between(MiscUtil.getCreationTime(api.getSelfInfo()), OffsetDateTime.now()) < 5)
-                    break;
-            case LOW:
-                if(!api.getSelfInfo().isVerified())
-                    break;
-            case NONE:
-                canSendVerification = true;
-                return;
-        }
-        throw new VerificationLevelException(verificationLevel);
     }
 
     public GuildImpl setAvailable(boolean available)

@@ -17,6 +17,8 @@ package net.dv8tion.jda.hooks;
 
 import net.dv8tion.jda.events.Event;
 
+import java.util.List;
+
 public interface IEventManager
 {
     boolean register(Object listener);
@@ -24,4 +26,6 @@ public interface IEventManager
     boolean unregister(Object listener);
 
     void handle(Event event);
+
+    List<Object> getRegisteredListeners();
 }
