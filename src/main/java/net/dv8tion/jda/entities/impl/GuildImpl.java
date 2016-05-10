@@ -52,6 +52,7 @@ public class GuildImpl implements Guild
     private final Map<String, Role> roles = new HashMap<>();
     private final Map<User, VoiceStatus> voiceStatusMap = new HashMap<>();
     private final Map<User, OffsetDateTime> joinedAtMap = new HashMap<>();
+    private final Map<User, String> nickMap = new HashMap<>();
     private Role publicRole;
     private TextChannel publicChannel;
     private final JDAImpl api;
@@ -164,7 +165,7 @@ public class GuildImpl implements Guild
         else
         {
             TextChannel channel = new EntityBuilder(api).createTextChannel(response, getId());
-            return new ChannelManager(channel);
+            return channel.getManager();
         }
     }
 
@@ -200,7 +201,7 @@ public class GuildImpl implements Guild
         else
         {
             VoiceChannel channel = new EntityBuilder(api).createVoiceChannel(response, getId());
-            return new ChannelManager(channel);
+            return channel.getManager();
         }
     }
 
@@ -238,7 +239,7 @@ public class GuildImpl implements Guild
         else
         {
             Role role = new EntityBuilder(api).createRole(response, getId());
-            return new RoleManager(role);
+            return role.getManager();
         }
     }
 
@@ -246,6 +247,18 @@ public class GuildImpl implements Guild
     public List<Role> getRolesForUser(User user)
     {
         return userRoles.get(user) == null ? new LinkedList<>() : Collections.unmodifiableList(userRoles.get(user));
+    }
+
+    @Override
+    public List<User> getUsersWithRole(Role role)
+    {
+        List<User> users = new LinkedList<>();
+        userRoles.entrySet().forEach(entry ->
+        {
+            if (entry.getValue().contains(role))
+                users.add(entry.getKey());
+        });
+        return Collections.unmodifiableList(users);
     }
 
     @Override
@@ -290,6 +303,12 @@ public class GuildImpl implements Guild
     public List<VoiceStatus> getVoiceStatuses()
     {
         return Collections.unmodifiableList(new LinkedList<>(voiceStatusMap.values()));
+    }
+
+    @Override
+    public String getNicknameForUser(User user)
+    {
+        return nickMap.get(user);
     }
 
     @Override
@@ -403,6 +422,11 @@ public class GuildImpl implements Guild
     public Map<User, OffsetDateTime> getJoinedAtMap()
     {
         return joinedAtMap;
+    }
+
+    public Map<User, String> getNickMap()
+    {
+        return nickMap;
     }
 
     public GuildImpl setVerificationLevel(VerificationLevel level)

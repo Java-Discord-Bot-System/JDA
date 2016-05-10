@@ -31,7 +31,7 @@ public class RoleImpl implements net.dv8tion.jda.entities.Role
     private int color;
     private int position;
     private int permissions;
-    private boolean managed, grouped;
+    private boolean managed, grouped, mentionable;
     private RoleManager manager = null;
 
     public RoleImpl(String id, Guild guild)
@@ -91,7 +91,7 @@ public class RoleImpl implements net.dv8tion.jda.entities.Role
     @Override
     public boolean hasPermission(Permission perm)
     {
-        return ((1 << perm.getOffset()) & permissions) > 0 || ((1 << Permission.MANAGE_ROLES.getOffset()) & permissions) > 0;
+        return ((1 << perm.getOffset()) & permissions) > 0 || ((1 << Permission.ADMINISTRATOR.getOffset()) & permissions) > 0;
     }
 
     @Override
@@ -104,6 +104,18 @@ public class RoleImpl implements net.dv8tion.jda.entities.Role
     public boolean isGrouped()
     {
         return grouped;
+    }
+
+    @Override
+    public boolean isMentionable()
+    {
+        return mentionable;
+    }
+
+    @Override
+    public String getAsMention()
+    {
+        return "<@&" + getId() + '>';
     }
 
     @Override
@@ -147,6 +159,12 @@ public class RoleImpl implements net.dv8tion.jda.entities.Role
     public RoleImpl setGrouped(boolean grouped)
     {
         this.grouped = grouped;
+        return this;
+    }
+
+    public RoleImpl setMentionable(boolean mentionable)
+    {
+        this.mentionable = mentionable;
         return this;
     }
 

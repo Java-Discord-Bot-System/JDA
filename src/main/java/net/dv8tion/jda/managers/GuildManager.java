@@ -269,9 +269,14 @@ public class GuildManager
     }
 
     /**
-     * Gives the {@link net.dv8tion.jda.entities.User User} the specified {@link net.dv8tion.jda.entities.Role Role}.<br>
-     * If the {@link net.dv8tion.jda.entities.User User} already has the provided {@link net.dv8tion.jda.entities.Role Role}
+     * Gives the {@link net.dv8tion.jda.entities.User User} the specified {@link net.dv8tion.jda.entities.Role Role(s)}.<br>
+     * If the {@link net.dv8tion.jda.entities.User User} already has the provided {@link net.dv8tion.jda.entities.Role Role(s)}
      * this method will do nothing.
+     *
+     * For this to work, the JDA user has to have a higher role than the highest of the user that gets assigned new roles
+     * AND all roles assigned have to be lower than highest role of the JDA user.
+     *
+     * This also requires the {@link net.dv8tion.jda.Permission#MANAGE_ROLES MANAGE_ROLES Permission}.
      *
      * This change will only be applied, if {@link #update()} is called.
      * So multiple changes can be made at once.
@@ -292,6 +297,11 @@ public class GuildManager
             throw new GuildUnavailableException();
         }
         checkPermission(Permission.MANAGE_ROLES);
+        checkPosition(user);
+        for (Role role : roles)
+        {
+            checkPosition(role);
+        }
 
         Set<Role> addRoles = addedRoles.get(user);
         if (addRoles == null)
@@ -319,9 +329,13 @@ public class GuildManager
     }
 
     /**
-     * Removes the specified {@link net.dv8tion.jda.entities.Role Role} from the {@link net.dv8tion.jda.entities.User User}.<br>
-     * If the {@link net.dv8tion.jda.entities.User User} does not have the specified {@link net.dv8tion.jda.entities.Role Role}
+     * Removes the specified {@link net.dv8tion.jda.entities.Role Role(s)} from the {@link net.dv8tion.jda.entities.User User}.<br>
+     * If the {@link net.dv8tion.jda.entities.User User} does not have the specified {@link net.dv8tion.jda.entities.Role Role(s)}
      * this method will do nothing.
+     *
+     * For this to work, the JDA user has to have a higher role than the highest of the user where roles are removed.
+     *
+     * This also requires the {@link net.dv8tion.jda.Permission#MANAGE_ROLES MANAGE_ROLES Permission}.
      *
      * This change will only be applied, if {@link #update()} is called.
      * So multiple changes can be made at once.
@@ -345,6 +359,8 @@ public class GuildManager
             throw new GuildUnavailableException();
         }
         checkPermission(Permission.MANAGE_ROLES);
+        checkPosition(user);
+        //we automatically are above all roles that are being removed (due to users highest role being lower than ours)
 
         Set<Role> addRoles = addedRoles.get(user);
         if (addRoles == null)
@@ -473,6 +489,48 @@ public class GuildManager
     }
 
     /**
+     * Changes a user's nickname in this guild.
+     * The nickname is visible to all users of this guild.
+     * This requires the correct Permissions to perform
+     * ({@link net.dv8tion.jda.Permission#NICKNAME_MANAGE NICKNAME_MANAGE} for others+self and
+     * {@link net.dv8tion.jda.Permission#NICKNAME_CHANGE NICKNAME_CHANGE} for only self).
+     *
+     * @param user
+     *      The user for which the nickname should be changed.
+     * @param nickname
+     *      The new nickname of the user, or null/"" to reset
+     * @throws net.dv8tion.jda.exceptions.GuildUnavailableException
+     *      if the guild is temporarily unavailable
+     */
+    public void setNickname(User user, String nickname)
+    {
+        if (!guild.isAvailable())
+        {
+            throw new GuildUnavailableException();
+        }
+
+        if(user == guild.getJDA().getSelfInfo())
+        {
+            if(!PermissionUtil.checkPermission(user, Permission.NICKNAME_CHANGE, guild) && !PermissionUtil.checkPermission(user, Permission.NICKNAME_MANAGE, guild))
+                throw new PermissionException(Permission.NICKNAME_CHANGE, "You neither have NICKNAME_CHANGE nor NICKNAME_MANAGE permission!");
+        }
+        else
+        {
+            checkPermission(Permission.NICKNAME_MANAGE);
+            checkPosition(user);
+        }
+
+        if (nickname == null)
+            nickname = "";
+
+        String url = Requester.DISCORD_API_PREFIX + "guilds/" + guild.getId() + "/members/"
+                + (user == guild.getJDA().getSelfInfo() ? "@me/nick" : user.getId());
+
+        ((JDAImpl) guild.getJDA()).getRequester()
+                .patch(url, new JSONObject().put("nick", nickname));
+    }
+
+    /**
      * Used to move a {@link net.dv8tion.jda.entities.User User} from one {@link net.dv8tion.jda.entities.VoiceChannel VoiceChannel}
      * to another {@link net.dv8tion.jda.entities.VoiceChannel VoiceChannel}.<br>
      * As a note, you cannot move a User that isn't already in a VoiceChannel. Also they must be in a VoiceChannel
@@ -575,8 +633,7 @@ public class GuildManager
             throw new GuildUnavailableException();
         }
         checkPermission(Permission.KICK_MEMBERS);
-        if(!PermissionUtil.canKick(guild.getJDA().getSelfInfo(), user, guild))
-            throw new PermissionException("You can't kick requested user due to him having equal/higher perms");
+        checkPosition(user);
 
         ((JDAImpl) guild.getJDA()).getRequester().delete(Requester.DISCORD_API_PREFIX + "guilds/"
                 + guild.getId() + "/members/" + user.getId());
@@ -624,8 +681,7 @@ public class GuildManager
             throw new GuildUnavailableException();
         }
         checkPermission(Permission.BAN_MEMBERS);
-        if(!PermissionUtil.canBan(guild.getJDA().getSelfInfo(), user, guild))
-            throw new PermissionException("You can't ban requested user due to him having equal/higher perms");
+        checkPosition(user);
 
         ((JDAImpl) guild.getJDA()).getRequester().put(Requester.DISCORD_API_PREFIX + "guilds/"
                 + guild.getId() + "/bans/" + user.getId() + (delDays > 0 ? "?delete-message-days=" + delDays : ""), new JSONObject());
@@ -766,5 +822,17 @@ public class GuildManager
         if (!PermissionUtil.checkPermission(getGuild().getJDA().getSelfInfo(), perm, getGuild()))
             throw new PermissionException(perm);
 
+    }
+
+    private void checkPosition(User u)
+    {
+        if(!PermissionUtil.canInteract(guild.getJDA().getSelfInfo(), u, guild))
+            throw new PermissionException("Can't modify a user with higher or equal highest role than yourself!");
+    }
+
+    private void checkPosition(Role r)
+    {
+        if(!PermissionUtil.canInteract(guild.getJDA().getSelfInfo(), r))
+            throw new PermissionException("Can't modify a user with higher or equal highest role than yourself!");
     }
 }
